@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Typography, Paper, Button, Grid } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { 
+  Container, 
+  Typography, 
+  Paper, 
+  Button, 
+  Grid, 
+  Box,
+  Divider
+} from '@mui/material';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 function FaturaConfecao() {
-  const { id } = useParams();
+  const { id } = useParams(); // ID da confecção (rota: /confecoes/fatura/:id)
   const [confecao, setConfecao] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -16,20 +24,21 @@ function FaturaConfecao() {
         setLoading(false);
       })
       .catch(error => {
-        console.error("Erro ao buscar confecção:", error);
+        console.error("ERRO AO BUSCAR CONFECÇÃO:", error);
         setLoading(false);
       });
   }, [id]);
 
-  const handlePagar = () => {
-    axios.post(`http://localhost:8000/api/pedidos/confecoes/${id}/pagar/`)
+  const handleLancarSaldo = () => {
+    // Registra o saldo no extrato, adicionando-o à conta da profissional que realizou o serviço
+    axios.post(`http://localhost:8000/api/pedidos/confecoes/${id}/lancar_saldo/`)
       .then(response => {
-        alert(`Pagamento efetuado com sucesso. Valor pago: R$ ${response.data.valor_pago}`);
+        alert(`SALDO ADICIONADO À CONTA DA PROFISSIONAL COM SUCESSO. VALOR: R$ ${response.data.valor}`);
         navigate('/pedidos');
       })
       .catch(error => {
-        console.error("Erro ao efetuar pagamento:", error.response.data);
-        alert("Erro: " + (error.response.data.error || "Erro ao efetuar pagamento"));
+        console.error("ERRO AO ADICIONAR SALDO:", error.response.data);
+        alert("ERRO: " + (error.response.data.error || "ERRO AO ADICIONAR SALDO"));
       });
   };
 
@@ -37,48 +46,66 @@ function FaturaConfecao() {
     navigate('/pedidos');
   };
 
-  if (loading) return <Typography>Carregando...</Typography>;
-  if (!confecao) return <Typography>Confecção não encontrada.</Typography>;
+  if (loading) return <Typography>CARREGANDO...</Typography>;
+  if (!confecao) return <Typography>CONFECÇÃO NÃO ENCONTRADA.</Typography>;
 
   const pedido = confecao.pedido;
   const corte = pedido ? pedido.corte : null;
   const modelo = corte && corte.modelo ? corte.modelo.nome : 'N/A';
   const profissional = confecao.profissional ? confecao.profissional.nome : 'N/A';
-  const dadosBancarios = confecao.profissional && confecao.profissional.dados_bancarios
-    ? JSON.stringify(confecao.profissional.dados_bancarios)
-    : 'N/A';
-  const valorAPagar = confecao.valor_por_peca_confecao * (pedido ? pedido.quantidade_inicial : 0);
+  const saldoLancar = confecao.valor_por_peca_confecao * (pedido ? pedido.quantidade_inicial : 0);
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h5" gutterBottom>Fatura de Confecção</Typography>
+      <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          ADICIONAR SALDO À CONTA DA PROFISSIONAL
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
         <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Typography><strong>Modelo:</strong> {modelo}</Typography>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body1">
+              <strong>MODELO:</strong> {modelo}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body1">
+              <strong>CORTE (MESA):</strong> {corte ? corte.codigo_mesa : 'N/A'}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body1">
+              <strong>QUANTIDADE INICIAL:</strong> {pedido ? pedido.quantidade_inicial : 'N/A'}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body1">
+              <strong>PROFISSIONAL:</strong> {profissional}
+            </Typography>
           </Grid>
           <Grid item xs={12}>
-            <Typography><strong>Corte (Mesa):</strong> {corte ? corte.codigo_mesa : 'N/A'}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography><strong>Quantidade Inicial:</strong> {pedido ? pedido.quantidade_inicial : 'N/A'}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography><strong>Profissional:</strong> {profissional}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography><strong>Dados Bancários:</strong> {dadosBancarios}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography><strong>Valor a Pagar:</strong> R$ {valorAPagar}</Typography>
+            <Typography variant="body1">
+              <strong>SALDO A LANÇAR:</strong> R$ {saldoLancar.toFixed(2)}
+            </Typography>
           </Grid>
         </Grid>
-        <Button variant="contained" color="primary" onClick={handlePagar} sx={{ mt: 2, mr: 2 }}>
-          PAGAR
-        </Button>
-        <Button variant="outlined" color="secondary" onClick={handleCancelar} sx={{ mt: 2 }}>
-          CANCELAR
-        </Button>
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleLancarSaldo} 
+            sx={{ mr: 2 }}
+          >
+            ADICIONAR SALDO
+          </Button>
+          <Button 
+            variant="outlined" 
+            color="secondary" 
+            onClick={handleCancelar}
+          >
+            CANCELAR
+          </Button>
+        </Box>
       </Paper>
     </Container>
   );

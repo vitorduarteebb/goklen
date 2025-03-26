@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, TextField, Button, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Container, Typography, TextField, Button, Paper, FormControl, InputLabel, Select, MenuItem, InputAdornment } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,10 +28,7 @@ function ConfecaoCadastro() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ 
-      ...formData, 
-      [name]: name === 'pedido' ? parseInt(value, 10) : value 
-    });
+    setFormData({ ...formData, [name]: name === 'pedido' ? parseInt(value, 10) : value });
   };
 
   const handleSubmit = (e) => {
@@ -39,7 +36,7 @@ function ConfecaoCadastro() {
     console.log("Dados enviados:", formData);
     axios.post('http://localhost:8000/api/pedidos/confecoes/', formData)
       .then(() => navigate('/pedidos'))
-      .catch(error => console.error("Erro no cadastro de confecção:", error));
+      .catch(error => console.error("Erro no cadastro de confecção:", error.response ? error.response.data : error));
   };
 
   return (
@@ -58,7 +55,7 @@ function ConfecaoCadastro() {
             >
               {pedidos.map(pedido => (
                 <MenuItem key={pedido.id} value={pedido.id}>
-                  Pedido #{pedido.id} - Qtd: {pedido.quantidade_inicial}
+                  Pedido #{pedido.id} - Qtd: {pedido.quantidade_inicial} | Mesa: {pedido.corte?.codigo_mesa} | Modelo: {pedido.corte?.modelo?.nome} | COR: {pedido.corte?.modelo?.cor} | TAM: {pedido.corte?.modelo?.tamanho}
                 </MenuItem>
               ))}
             </Select>
@@ -88,6 +85,9 @@ function ConfecaoCadastro() {
             value={formData.valor_por_peca_confecao}
             onChange={handleChange}
             required
+            InputProps={{
+              startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+            }}
           />
           <Button variant="contained" color="primary" type="submit" sx={{ mt: 2 }}>
             Enviar Confecção

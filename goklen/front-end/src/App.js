@@ -17,8 +17,10 @@ import Pedidos from './pages/Pedidos';
 import FaturaConfecao from './pages/FaturaConfecao';
 import FaturaEmbalagem from './pages/FaturaEmbalagem';
 import ExtratoProfissional from './pages/ExtratoProfissional';
-import ProdutoCadastro from './pages/ProdutoCadastro';
+import AviamentoCadastro from './pages/AviamentoCadastro'; 
 import ProdutoEstoque from './pages/ProdutoEstoque';
+// Atualize aqui: importe o componente OrderLookup, que será usado como scanner
+import OrderLookup from './pages/OrderLookup';
 
 function App() {
   return (
@@ -42,8 +44,9 @@ function App() {
         <Route path="/embalagens/fatura/:id" element={<FaturaEmbalagem />} />
         <Route path="/extrato/:id" element={<ExtratoProfissional />} />
         <Route path="/produtos" element={<ProdutoEstoque />} />
-        <Route path="/produtos/cadastro" element={<ProdutoCadastro />} />
-        
+        <Route path="/aviamentos/cadastro" element={<AviamentoCadastro />} />
+        {/* Rota para o scanner: usamos OrderLookup */}
+        <Route path="/barcode-scanner" element={<OrderLookup />} />
       </Routes>
     </Router>
   );

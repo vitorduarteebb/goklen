@@ -16,8 +16,8 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 
 const getStatusColor = (quantidade) => {
-  // This helper function returns a color based on whether the corte is active or finished.
-  return quantidade > 0 ? "#4caf50" : "#2196f3";  // green for active, blue for finished
+  // Se a quantidade for maior que zero, considera ativo (verde), senão inativo (azul)
+  return quantidade > 0 ? "#4caf50" : "#2196f3";
 };
 
 function Cortes() {
@@ -26,6 +26,7 @@ function Cortes() {
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Busca os cortes disponíveis na API
   useEffect(() => {
     axios.get('http://localhost:8000/api/pedidos/cortes/')
       .then(response => {
@@ -35,7 +36,7 @@ function Cortes() {
       .catch(error => console.error("Erro ao buscar cortes:", error));
   }, []);
 
-  // Filter cortes by search term based on codigo_mesa
+  // Filtra cortes com base no código da mesa
   const filterCortes = (data) => {
     if (!searchTerm.trim()) return data;
     return data.filter(corte => {
@@ -44,7 +45,7 @@ function Cortes() {
     });
   };
 
-  // Sorting handler for cortes
+  // Controla a ordenação dos dados
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -54,7 +55,7 @@ function Cortes() {
     }
   };
 
-  // Sort cortes based on sortBy and sortOrder
+  // Ordena os cortes conforme a coluna selecionada
   const sortData = (data) => {
     if (!sortBy) return data;
     return [...data].sort((a, b) => {
@@ -69,8 +70,12 @@ function Cortes() {
           bValue = b.codigo_mesa || '';
           break;
         case 'modelo':
-          aValue = a.modelo && a.modelo.nome ? a.modelo.nome : '';
-          bValue = b.modelo && b.modelo.nome ? b.modelo.nome : '';
+          aValue = a.modelo && a.modelo.nome 
+            ? `${a.modelo.nome} | ${a.modelo.tamanho || '-'} | ${a.modelo.cor || '-'}`.toLowerCase()
+            : 'N/A';
+          bValue = b.modelo && b.modelo.nome 
+            ? `${b.modelo.nome} | ${b.modelo.tamanho || '-'} | ${b.modelo.cor || '-'}`.toLowerCase()
+            : 'N/A';
           break;
         case 'data_corte':
           aValue = new Date(a.data_corte);
@@ -90,17 +95,18 @@ function Cortes() {
     });
   };
 
-  // Separate active and finished cortes
+  // Separa os cortes ativos (quantidade > 0) dos finalizados (quantidade === 0)
   const activeCortes = sortData(filterCortes(cortes.filter(corte => corte.quantidade_cortada > 0)));
   const finishedCortes = sortData(filterCortes(cortes.filter(corte => corte.quantidade_cortada === 0)));
 
+  // Renderiza a tabela de cortes
   const renderTable = (data, tableTitle, paperProps = {}) => (
     <Paper sx={{ p: 2, mt: 4, ...paperProps }}>
       <Typography variant="h5" gutterBottom>{tableTitle}</Typography>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>
               <TableSortLabel
                 active={sortBy === 'id'}
                 direction={sortBy === 'id' ? sortOrder : 'asc'}
@@ -109,7 +115,7 @@ function Cortes() {
                 ID
               </TableSortLabel>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>
               <TableSortLabel
                 active={sortBy === 'codigo_mesa'}
                 direction={sortBy === 'codigo_mesa' ? sortOrder : 'asc'}
@@ -118,16 +124,16 @@ function Cortes() {
                 Código da Mesa
               </TableSortLabel>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>
               <TableSortLabel
                 active={sortBy === 'modelo'}
                 direction={sortBy === 'modelo' ? sortOrder : 'asc'}
                 onClick={() => handleSort('modelo')}
               >
-                Modelo
+                Modelo | Tamanho | Cor
               </TableSortLabel>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>
               <TableSortLabel
                 active={sortBy === 'data_corte'}
                 direction={sortBy === 'data_corte' ? sortOrder : 'asc'}
@@ -136,7 +142,7 @@ function Cortes() {
                 Data do Corte
               </TableSortLabel>
             </TableCell>
-            <TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>
               <TableSortLabel
                 active={sortBy === 'quantidade_cortada'}
                 direction={sortBy === 'quantidade_cortada' ? sortOrder : 'asc'}
@@ -156,7 +162,9 @@ function Cortes() {
                   {corte.codigo_mesa ? `Mesa: ${corte.codigo_mesa}` : '-'}
                 </TableCell>
                 <TableCell>
-                  {corte.modelo && corte.modelo.nome ? corte.modelo.nome : 'N/A'}
+                  {corte.modelo && corte.modelo.nome 
+                    ? `${corte.modelo.nome} | ${corte.modelo.tamanho || '-'} | ${corte.modelo.cor || '-'}` 
+                    : 'N/A'}
                 </TableCell>
                 <TableCell>
                   {new Date(corte.data_corte).toLocaleString()}
@@ -201,7 +209,7 @@ function Cortes() {
       {/* Active Cortes */}
       {renderTable(activeCortes, "Cortes Disponíveis")}
 
-      {/* Finished Cortes (when quantity is zero) with a blue background */}
+      {/* Finished Cortes com fundo azul */}
       {finishedCortes.length > 0 && renderTable(finishedCortes, "Cortes Finalizados", { backgroundColor: "#e3f2fd" })}
     </Container>
   );

@@ -11,7 +11,7 @@ import {
   Button,
   TextField,
   TableSortLabel,
-  Box
+  Box,
 } from '@mui/material';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -20,35 +20,38 @@ const getHeaderStyle = {
   fontWeight: 'bold'
 };
 
-function ProdutoEstoque() {
-  const [produtos, setProdutos] = useState([]);
+function AviamentoEstoque() {
+  const [aviamentos, setAviamentos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  // Fetch products from the API
-  const fetchProdutos = () => {
-    axios.get('http://localhost:8000/api/cadastro/produtos/')
-      .then(response => setProdutos(response.data))
-      .catch(error => console.error("Erro ao buscar produtos:", error));
+  // Atualize o endpoint para o caminho correto
+  const fetchAviamentos = () => {
+    axios.get('http://localhost:8000/api/cadastro/aviamentos/')
+      .then(response => setAviamentos(response.data))
+      .catch(error => console.error("Erro ao buscar aviamentos:", error));
   };
 
   useEffect(() => {
-    fetchProdutos();
+    fetchAviamentos();
   }, []);
 
-  // Filter products by search term (ID, Nome, or Marca)
-  const filterProdutos = (data) => {
+  // Filtra aviamentos pelo termo de busca (ID, Nome, Marca, Cor ou Descrição)
+  const filterAviamentos = (data) => {
     if (!searchTerm.trim()) return data;
-    return data.filter(produto => {
-      const idMatch = produto.id.toString().includes(searchTerm);
-      const nomeMatch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase());
-      const marcaMatch = produto.marca.toLowerCase().includes(searchTerm.toLowerCase());
-      return idMatch || nomeMatch || marcaMatch;
+    return data.filter(aviamento => {
+      const term = searchTerm.toLowerCase();
+      const idMatch = aviamento.id.toString().includes(term);
+      const nomeMatch = aviamento.nome?.toLowerCase().includes(term);
+      const marcaMatch = aviamento.marca?.toLowerCase().includes(term);
+      const corMatch = aviamento.cor?.toLowerCase().includes(term);
+      const descricaoMatch = aviamento.descricao?.toLowerCase().includes(term);
+      return idMatch || nomeMatch || marcaMatch || corMatch || descricaoMatch;
     });
   };
 
-  // Sorting handler
+  // Ordenação
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -58,7 +61,6 @@ function ProdutoEstoque() {
     }
   };
 
-  // Sort products based on selected column
   const sortData = (data) => {
     if (!sortBy) return data;
     return [...data].sort((a, b) => {
@@ -76,9 +78,17 @@ function ProdutoEstoque() {
           aValue = a.marca || '';
           bValue = b.marca || '';
           break;
-        case 'quantidade':
-          aValue = a.quantidade;
-          bValue = b.quantidade;
+        case 'cor':
+          aValue = a.cor || '';
+          bValue = b.cor || '';
+          break;
+        case 'quantidade_em_estoque':
+          aValue = a.quantidade_em_estoque;
+          bValue = b.quantidade_em_estoque;
+          break;
+        case 'descricao':
+          aValue = a.descricao || '';
+          bValue = b.descricao || '';
           break;
         default:
           aValue = '';
@@ -90,15 +100,14 @@ function ProdutoEstoque() {
     });
   };
 
-  // Filter and sort products
-  const filteredProdutos = sortData(filterProdutos(produtos));
+  const filteredAviamentos = sortData(filterAviamentos(aviamentos));
 
-  // Separate active and finished products
-  const activeProdutos = filteredProdutos.filter(produto => produto.quantidade > 0);
-  const finishedProdutos = filteredProdutos.filter(produto => produto.quantidade === 0);
+  // Separa aviamentos ativos (com estoque > 0) e esgotados (estoque = 0)
+  const activeAviamentos = filteredAviamentos.filter(item => item.quantidade_em_estoque > 0);
+  const finishedAviamentos = filteredAviamentos.filter(item => item.quantidade_em_estoque === 0);
 
-  // Action: Somar (add) to product quantity
-  const handleSomar = (produto) => {
+  // Ações para atualizar estoque
+  const handleSomar = (aviamento) => {
     const valor = prompt("Informe a quantidade a somar:");
     if (valor === null) return;
     const quantidade = parseInt(valor, 10);
@@ -106,14 +115,13 @@ function ProdutoEstoque() {
       alert("Informe um número válido.");
       return;
     }
-    const novaQuantidade = produto.quantidade + quantidade;
-    axios.patch(`http://localhost:8000/api/cadastro/produtos/${produto.id}/`, { quantidade: novaQuantidade })
-      .then(() => fetchProdutos())
+    const novaQuantidade = aviamento.quantidade_em_estoque + quantidade;
+    axios.patch(`http://localhost:8000/api/cadastro/aviamentos/${aviamento.id}/`, { quantidade_em_estoque: novaQuantidade })
+      .then(() => fetchAviamentos())
       .catch(error => console.error("Erro ao somar quantidade:", error));
   };
 
-  // Action: Subtrair (subtract) from product quantity
-  const handleSubtrair = (produto) => {
+  const handleSubtrair = (aviamento) => {
     const valor = prompt("Informe a quantidade a subtrair:");
     if (valor === null) return;
     const quantidade = parseInt(valor, 10);
@@ -121,32 +129,31 @@ function ProdutoEstoque() {
       alert("Informe um número válido.");
       return;
     }
-    if (quantidade > produto.quantidade) {
+    if (quantidade > aviamento.quantidade_em_estoque) {
       alert("Quantidade a subtrair maior que o estoque.");
       return;
     }
-    const novaQuantidade = produto.quantidade - quantidade;
-    axios.patch(`http://localhost:8000/api/cadastro/produtos/${produto.id}/`, { quantidade: novaQuantidade })
-      .then(() => fetchProdutos())
+    const novaQuantidade = aviamento.quantidade_em_estoque - quantidade;
+    axios.patch(`http://localhost:8000/api/cadastro/aviamentos/${aviamento.id}/`, { quantidade_em_estoque: novaQuantidade })
+      .then(() => fetchAviamentos())
       .catch(error => console.error("Erro ao subtrair quantidade:", error));
   };
 
-  // Action: Excluir (delete) a product
-  const handleExcluir = (produtoId) => {
-    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
-      axios.delete(`http://localhost:8000/api/cadastro/produtos/${produtoId}/`)
-        .then(() => fetchProdutos())
-        .catch(error => console.error("Erro ao excluir produto:", error));
+  const handleExcluir = (aviamentoId) => {
+    if (window.confirm("Tem certeza que deseja excluir este aviamento?")) {
+      axios.delete(`http://localhost:8000/api/cadastro/aviamentos/${aviamentoId}/`)
+        .then(() => fetchAviamentos())
+        .catch(error => console.error("Erro ao excluir aviamento:", error));
     }
   };
 
-  const renderActions = (produto) => (
+  const renderActions = (aviamento) => (
     <>
       <Button 
         variant="outlined" 
         color="primary" 
         size="small" 
-        onClick={() => handleSomar(produto)} 
+        onClick={() => handleSomar(aviamento)} 
         sx={{ mr: 1 }}
       >
         Somar
@@ -155,7 +162,7 @@ function ProdutoEstoque() {
         variant="outlined" 
         color="secondary" 
         size="small" 
-        onClick={() => handleSubtrair(produto)} 
+        onClick={() => handleSubtrair(aviamento)} 
         sx={{ mr: 1 }}
       >
         Subtrair
@@ -164,14 +171,13 @@ function ProdutoEstoque() {
         variant="outlined" 
         color="error" 
         size="small" 
-        onClick={() => handleExcluir(produto.id)}
+        onClick={() => handleExcluir(aviamento.id)}
       >
         Excluir
       </Button>
     </>
   );
 
-  // Render table for given data and title; paperProps allow custom styling (e.g., backgroundColor)
   const renderTable = (data, tableTitle, paperProps = {}) => (
     <Paper sx={{ p: 2, mt: 4, ...paperProps }}>
       <Typography variant="h5" gutterBottom>{tableTitle}</Typography>
@@ -210,12 +216,32 @@ function ProdutoEstoque() {
             </TableCell>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'quantidade'}
-                direction={sortBy === 'quantidade' ? sortOrder : 'asc'}
-                onClick={() => handleSort('quantidade')}
+                active={sortBy === 'cor'}
+                direction={sortBy === 'cor' ? sortOrder : 'asc'}
+                onClick={() => handleSort('cor')}
                 sx={getHeaderStyle}
               >
-                Quantidade
+                Cor
+              </TableSortLabel>
+            </TableCell>
+            <TableCell>
+              <TableSortLabel
+                active={sortBy === 'quantidade_em_estoque'}
+                direction={sortBy === 'quantidade_em_estoque' ? sortOrder : 'asc'}
+                onClick={() => handleSort('quantidade_em_estoque')}
+                sx={getHeaderStyle}
+              >
+                Estoque
+              </TableSortLabel>
+            </TableCell>
+            <TableCell>
+              <TableSortLabel
+                active={sortBy === 'descricao'}
+                direction={sortBy === 'descricao' ? sortOrder : 'asc'}
+                onClick={() => handleSort('descricao')}
+                sx={getHeaderStyle}
+              >
+                Descrição
               </TableSortLabel>
             </TableCell>
             <TableCell>Ações</TableCell>
@@ -223,19 +249,21 @@ function ProdutoEstoque() {
         </TableHead>
         <TableBody>
           {data.length > 0 ? (
-            data.map(produto => (
-              <TableRow key={produto.id}>
-                <TableCell>{produto.id}</TableCell>
-                <TableCell>{produto.nome}</TableCell>
-                <TableCell>{produto.marca}</TableCell>
-                <TableCell>{produto.quantidade}</TableCell>
-                <TableCell>{renderActions(produto)}</TableCell>
+            data.map(aviamento => (
+              <TableRow key={aviamento.id}>
+                <TableCell>{aviamento.id}</TableCell>
+                <TableCell>{aviamento.nome}</TableCell>
+                <TableCell>{aviamento.marca}</TableCell>
+                <TableCell>{aviamento.cor}</TableCell>
+                <TableCell>{aviamento.quantidade_em_estoque}</TableCell>
+                <TableCell>{aviamento.descricao}</TableCell>
+                <TableCell>{renderActions(aviamento)}</TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={5} align="center">
-                <Typography>Nenhum produto cadastrado.</Typography>
+              <TableCell colSpan={7} align="center">
+                <Typography>Nenhum aviamento cadastrado.</Typography>
               </TableCell>
             </TableRow>
           )}
@@ -246,34 +274,34 @@ function ProdutoEstoque() {
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Estoque de Produtos</Typography>
+      <Typography variant="h4" gutterBottom>Estoque de Aviamentos</Typography>
       <Button
         variant="contained"
         color="primary"
         component={Link}
-        to="/produtos/cadastro"
+        to="/aviamentos/cadastro"
         sx={{ mb: 2 }}
       >
-        Cadastrar Produto
+        Cadastrar Aviamento
       </Button>
       
-      {/* Search Box */}
+      {/* Caixa de busca */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <TextField
-          label="Buscar por ID, Nome ou Marca"
+          label="Buscar por ID, Nome, Marca, Cor ou Descrição"
           fullWidth
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </Paper>
 
-      {/* Active Products */}
-      {renderTable(activeProdutos, "Produtos em Estoque")}
-
-      {/* Finished Products (Quantity = 0) with a blue background */}
-      {finishedProdutos.length > 0 && renderTable(finishedProdutos, "Produtos Esgotados", { backgroundColor: "#e3f2fd" })}
+      {/* Tabelas de aviamentos ativos e esgotados */}
+      {renderTable(activeAviamentos, "Aviamentos em Estoque")}
+      {finishedAviamentos.length > 0 &&
+        renderTable(finishedAviamentos, "Aviamentos Esgotados", { backgroundColor: "#e3f2fd" })
+      }
     </Container>
   );
 }
 
-export default ProdutoEstoque;
+export default AviamentoEstoque;
